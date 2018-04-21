@@ -8,8 +8,6 @@ You will need to install [Boost](http://boost.org)
 
 ## Creating a new project
 
-This is most simply accomplished with [Hub](https://hub.github.com/). The following commands will create a new GitHub project based on this template named `new-project` under the `puppetlabs` organization. Use Hub's `-p` option to create a private repo.
-
 ```
 $ git clone https://github.com/marcelogdeandrade/WikipediaRandomTextGenerator
 $ cd WikipediaRandomTextGenerator/
