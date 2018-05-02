@@ -10,7 +10,7 @@ You will need to install [Boost](http://boost.org)
 
 ```
 $ git clone https://github.com/marcelogdeandrade/WikipediaRandomTextGenerator
-$ cd WikipediaRandomTextGenerator/
+$ cd WikipediaRandomTextGenerator/src/
 $ make all
 $ ./main
 
