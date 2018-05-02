@@ -5,28 +5,66 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <mpi.h>
 
-#define NGRAM_SIZE 5
-#define SIZE_TEXT 100
+#define NGRAM_SIZE 3
+#define SIZE_TEXT 300
+
+#define MASTER 0
 
 typedef std::vector<std::string> ngram;
 typedef std::map<ngram, int> ngram_map;
 
 
 
-int main(){
-    std::string file_name = "wikipedia-super-small.xml";
+int main(int argc, char** argv){
+
+	MPI_Init(&argc,&argv);
+	double start;
+	double end;
+	int size;
+	int rank;
+
+	start = MPI_Wtime();
+
+	MPI_Comm_size(MPI_COMM_WORLD, &size); // recupera número de processos
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank); // recupera o indice (rank) do processo
+
+    std::string file_name = "../wikipedia-small.xml";
     std::vector<std::string> input = read_xml_input(file_name);
+
+    end = MPI_Wtime();
+    std::cout << "Leitura de arquivos: " << end - start << "\n";
+    start = MPI_Wtime();
+
     std::vector<ngram> input_ngrams = doc_to_ngram(input, NGRAM_SIZE);
-    // std::cout << "Ngramas criado" << "\n";
+   
+    end = MPI_Wtime();
+    std::cout << "Criar NGramas: " << end - start << "\n";
+    start = MPI_Wtime();
+
     ngram_map ngrams_mapped = count_ngrams(input_ngrams);
-    // std::cout << "Ngramas mapeados" << "\n";
-    // std::cout << "Tree criada" << "\n";
+
+    end = MPI_Wtime();
+    std::cout << "Mapear NGramas: " << end - start << "\n";
+    start = MPI_Wtime();
+
     Tree* tree = new Tree();
     tree->create_tree(ngrams_mapped, NGRAM_SIZE);
+
+    end = MPI_Wtime();
+    std::cout << "Criar Arvore: " << end - start << "\n";
+    start = MPI_Wtime();
+
     std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
+
+    end = MPI_Wtime();
+    std::cout << "Gerar Texto Final: " << end - start << "\n";
+    start = MPI_Wtime();
+
     std::cout << final_text << "\n";
-    // tree->print_tree(*tree->root);
+
+    MPI_Finalize();
     return 0;
 }
 
