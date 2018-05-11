@@ -6,78 +6,92 @@
 #include <string>
 #include <map>
 #include <boost/mpi.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/map.hpp>
-
-
 
 namespace mpi = boost::mpi;
 
-#define NGRAM_SIZE 3
-#define SIZE_TEXT 300
-#define TAG 42
 
+#define NGRAM_SIZE 4
+#define SIZE_TEXT 300
+
+#define MASTER 0
 
 typedef std::vector<std::string> ngram;
 typedef std::map<ngram, int> ngram_map;
+
 
 
 int main(){
 
 	mpi::environment env;
 	mpi::communicator world;
-	std::vector<std::string> input_send;
-	std::vector<std::string> input_recv;
-	std::vector<ngram> input_ngrams;
+
 	mpi::timer timer;
-	if (world.rank() == 0){
-		timer.restart();
-	    std::string file_name = "../wikipedia-small.xml";
-	    input_send = read_xml_input(file_name);
-     	std::cout << "Leitura de arquivos: " << timer.elapsed() << "\n";
-	    int slice = input_send.size() / (world.size() - 1);
-	    int partition = 0;
-		timer.restart();
-	    for (int i = 1; i < world.size(); i++){
-	    	std::vector<std::string> aux_input_send (input_send.begin() + partition, input_send.begin() + partition + slice);
-	    	world.send(i, TAG, aux_input_send);
-	    	partition += slice;
-	    }
-	    ngram_map all_ngrams_mapped;
-	    for (int i = 1; i < world.size(); i++){
-	    	ngram_map recv_ngrams_mapped;
-	    	world.recv(i, TAG, recv_ngrams_mapped);
-	    	for (auto it=recv_ngrams_mapped.begin(); it!=recv_ngrams_mapped.end(); ++it) {
-			  if (all_ngrams_mapped[it->first])
-			    all_ngrams_mapped[it->first] += it->second;
-			  else
-			    all_ngrams_mapped[it->first] = it->second;
-			}
-	    }
 
-     	std::cout << "Criar + Mapear NGramas: " << timer.elapsed() << "\n";
-     	timer.restart();
+    std::string file_name = "files_small/wikipedia-small.xml";
+    std::vector<std::string> input = read_xml_input(file_name);
 
-     	Tree* tree = new Tree();
-     	tree->create_tree(all_ngrams_mapped, NGRAM_SIZE);
+    auto time_file_read = timer.elapsed();
+    std::cout << "Leitura de arquivos: " << time_file_read << "\n";
+    timer.restart();
 
-     	std::cout << "Criar Arvore: " << timer.elapsed() << "\n";
-     	timer.restart();
+    std::vector<ngram> input_ngrams = doc_to_ngram(input, NGRAM_SIZE);
+   	
+   	auto time_create_ngrams = timer.elapsed();
+    std::cout << "Criar NGramas: " << time_create_ngrams << "\n";
+    timer.restart();
 
-     	std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
+    ngram_map ngrams_mapped = count_ngrams(input_ngrams);
 
-     	std::cout << "Gerar Texto: " << timer.elapsed() << "\n";
-     	timer.restart();
+    auto time_map_ngrams = timer.elapsed();
+    std::cout << "Mapear NGramas: " << time_map_ngrams << "\n";
+    timer.restart();
 
-     	std::cout << final_text << "\n";
-	} else {
-		world.recv(0, TAG, input_recv);
-		input_ngrams = doc_to_ngram(input_recv, NGRAM_SIZE);
-     	ngram_map ngrams_mapped = count_ngrams(input_ngrams);
-		world.send(0, TAG, ngrams_mapped);
-	}
+    int mem_usaga_map = get_mem_usage_map(ngrams_mapped);
 
+    std::cout << "Tamanho dos ngramas: " << mem_usaga_map << "\n";
+
+
+    Tree* tree = new Tree();
+    tree->create_tree(ngrams_mapped, NGRAM_SIZE);
+
+    auto time_create_tree = timer.elapsed();
+    std::cout << "Criar Arvore: " << time_create_tree << "\n";
+    timer.restart();
+
+    std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
+
+    auto time_generate_text = timer.elapsed();
+    std::cout << "Gerar Texto Final: " << time_generate_text << "\n";
+    timer.restart();
+
+    std::cout << "\n" << final_text << "\n";
+
+    auto total_time = time_file_read +
+    				  time_create_ngrams +
+    				  time_map_ngrams +
+    				  time_create_tree + 
+    				  time_generate_text;
+
+    std::cout << "\n" << "------------------------------------------" << "\n" << "Tempos Percentuais: " << "\n";
+    std::cout << "Leitura de arquivos: " << (time_file_read * 100) / total_time << "%\n";
+    std::cout << "Criação dos ngrams: " << (time_create_ngrams * 100) / total_time << "%\n";
+    std::cout << "Mapear ngramas: " << (time_map_ngrams * 100) / total_time << "%\n";
+    std::cout << "Criação da árvore: " << (time_create_tree * 100) / total_time << "%\n";
+    std::cout << "Gera texto: " << (time_generate_text * 100) / total_time << "%\n";
+    MPI_Finalize();
     return 0;
+}
+
+int get_mem_usage_map(ngram_map ngrams_mapped){
+	int total_size = 0;
+	for (ngram_map::iterator it = ngrams_mapped.begin(); it != ngrams_mapped.end(); it++ ){
+		ngram ngram_vector = it->first;
+		for (unsigned i = 0; i < ngram_vector.size(); i++){
+			total_size += sizeof(ngram_vector[i]);
+		}
+		total_size += sizeof(it->second);
+	}
+	return total_size;
 }
 
 std::vector<ngram> doc_to_ngram(std::vector<std::string> &doc, int n){
@@ -92,6 +106,7 @@ std::vector<ngram> doc_to_ngram(std::vector<std::string> &doc, int n){
 	return doc_ngrams;
 }
 
+// Desempenho disso está MUITO ruim
 ngram_map count_ngrams(std::vector<ngram> ngrams){
 	ngram_map result;
 	for (unsigned int  i = 0; i < ngrams.size(); i++){

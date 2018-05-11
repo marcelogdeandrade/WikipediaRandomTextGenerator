@@ -1,3 +1,12 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
 # Prerequisites
 *.d
 
@@ -32,6 +41,7 @@
 *.app
 
 # Large Read Files
-wikipedia.xml
-wikipedia-small.xml
-wikipedia-mini-small.xml
+files/
+files_small/
+files_super_small/
+files_ultra_small/

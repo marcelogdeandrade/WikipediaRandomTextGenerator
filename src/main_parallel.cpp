@@ -5,10 +5,16 @@
 #include <iostream>
 #include <string>
 #include <map>
-#include <mpi.h>
+#include <boost/mpi.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/map.hpp>
+
+namespace mpi = boost::mpi;
+
 
 #define NGRAM_SIZE 3
 #define SIZE_TEXT 300
+#define TAG 42
 
 #define MASTER 0
 
@@ -17,56 +23,56 @@ typedef std::map<ngram, int> ngram_map;
 
 
 
-int main(int argc, char** argv){
+int main(){
 
-	MPI_Init(&argc,&argv);
-	double start;
-	double end;
-	int size;
-	int rank;
+	mpi::environment env;
+	mpi::communicator world;
 
-	start = MPI_Wtime();
+	mpi::timer timer;
 
-	MPI_Comm_size(MPI_COMM_WORLD, &size); // recupera número de processos
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank); // recupera o indice (rank) do processo
+    if (world.rank() != MASTER){
+	    std::string file_name = "files_mini_small/wikipedia-mini-small_" + std::to_string(world.rank()) + ".xml" ;
+	    std::cout << file_name << "\n";
+	    std::vector<std::string> input = read_xml_input(file_name);
 
-    std::string file_name = "../wikipedia-small.xml";
-    std::vector<std::string> input = read_xml_input(file_name);
+	    std::cout << "Leitura de arquivos: " << timer.elapsed() << "\n";
+	    timer.restart();
 
-    end = MPI_Wtime();
-    std::cout << "Leitura de arquivos: " << end - start << "\n";
-    start = MPI_Wtime();
+	    std::vector<ngram> input_ngrams = doc_to_ngram(input, NGRAM_SIZE);
+	   
+	    std::cout << "Criar NGramas: " << timer.elapsed() << "\n";
+	    timer.restart();
 
-    std::vector<ngram> input_ngrams = doc_to_ngram(input, NGRAM_SIZE);
-   
-    end = MPI_Wtime();
-    std::cout << "Criar NGramas: " << end - start << "\n";
-    start = MPI_Wtime();
+    	ngram_map ngrams_mapped = count_ngrams(input_ngrams);
+    	world.send(MASTER, TAG, ngrams_mapped);
+    	std::cout << "Mandei" << "\n";
+    } else{
+    	std::vector<ngram_map> vector_ngram_map;
+		ngram_map ngrams_mapped;
+    	for (int i = 1; i < world.size(); i++){
+    		world.recv(i, TAG, ngrams_mapped);
+    		vector_ngram_map.push_back(ngrams_mapped);
+    		std::cout << "Recebi" << "\n";
+    	}
+		ngrams_mapped = concatenate_ngram_maps(vector_ngram_map);
+		std::cout << "Ngramas concatenados" << "\n";
+	    Tree* tree = new Tree();
+    	tree->create_tree(ngrams_mapped, NGRAM_SIZE);
 
-    ngram_map ngrams_mapped = count_ngrams(input_ngrams);
+    	std::cout << "Criar Arvore: " << timer.elapsed() << "\n";
+    	timer.restart();
 
-    end = MPI_Wtime();
-    std::cout << "Mapear NGramas: " << end - start << "\n";
-    start = MPI_Wtime();
+	    std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
 
-    Tree* tree = new Tree();
-    tree->create_tree(ngrams_mapped, NGRAM_SIZE);
+	    std::cout << "Gerar Texto Final: " << timer.elapsed() << "\n";
+    	timer.restart();
 
-    end = MPI_Wtime();
-    std::cout << "Criar Arvore: " << end - start << "\n";
-    start = MPI_Wtime();
-
-    std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
-
-    end = MPI_Wtime();
-    std::cout << "Gerar Texto Final: " << end - start << "\n";
-    start = MPI_Wtime();
-
-    std::cout << final_text << "\n";
-
-    MPI_Finalize();
+    	std::cout << "\n" << final_text << "\n";
+    }
+    
     return 0;
 }
+
 
 std::vector<ngram> doc_to_ngram(std::vector<std::string> &doc, int n){
 	std::vector<ngram> doc_ngrams;
@@ -78,6 +84,22 @@ std::vector<ngram> doc_to_ngram(std::vector<std::string> &doc, int n){
 		doc_ngrams.push_back(tokens);
 	}
 	return doc_ngrams;
+}
+
+ngram_map concatenate_ngram_maps(std::vector<ngram_map> vector_ngram_map){
+	ngram_map result;
+	for(std::vector<ngram_map>::iterator vec_it = vector_ngram_map.begin(); vec_it != vector_ngram_map.end(); ++vec_it) {
+		ngram_map aux = *vec_it;
+		for (ngram_map::iterator map_it = aux.begin(); map_it != aux.end(); map_it++ )
+			{
+				if (result.count(map_it->first) == 0){
+					result[map_it->first] = map_it->second;
+				} else{
+					result[map_it->first] += map_it->second;
+				}
+			}
+	}
+	return result;
 }
 
 // Desempenho disso está MUITO ruim
