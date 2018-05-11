@@ -21,4 +21,6 @@ ngram_map concatenate_ngram_maps(std::vector<ngram_map> vector_ngram_map);
 
 int get_mem_usage_map(ngram_map ngrams_mapped);
 
+std::map<std::string, int> get_count_next_word(Tree* tree, std::vector<std::string> n_words, int size_ngram);
+
 #endif
