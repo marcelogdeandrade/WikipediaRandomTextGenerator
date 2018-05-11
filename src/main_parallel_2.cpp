@@ -32,7 +32,7 @@ int main(){
 	mpi::timer timer_full;
 
     if (world.rank() != MASTER){
-	    std::string file_name = "files_small/wikipedia-small_full-2.xml";
+	    std::string file_name = "files_small/wikipedia-small_full-3.xml";
 	    std::cout << file_name << "\n";
 	    std::vector<std::string> input = read_xml_input(file_name);
 
