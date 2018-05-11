@@ -26,8 +26,9 @@ int main(){
 	mpi::communicator world;
 
 	mpi::timer timer;
+	mpi::timer timer_full;
 
-    std::string file_name = "files_mini_small/wikipedia-mini-small_1.xml";
+    std::string file_name = "files_mini_small/wikipedia-mini-small_full.xml";
     std::vector<std::string> input = read_xml_input(file_name);
 
     auto time_file_read = timer.elapsed();
@@ -61,7 +62,7 @@ int main(){
     std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
 
     auto time_generate_text = timer.elapsed();
-    std::cout << "Gerar Texto Final: " << time_generate_text << "\n";
+    std::cout << "Gerar Texto Final: " << timer_full.elapsed() << "\n";
     timer.restart();
 
     std::cout << "\n" << final_text << "\n";
@@ -78,6 +79,7 @@ int main(){
     std::cout << "Mapear ngramas: " << (time_map_ngrams * 100) / total_time << "%\n";
     std::cout << "Criação da árvore: " << (time_create_tree * 100) / total_time << "%\n";
     std::cout << "Gera texto: " << (time_generate_text * 100) / total_time << "%\n";
+    std::cout << "TEMPO TOTAL: " << total_time << "\n";
     MPI_Finalize();
     return 0;
 }

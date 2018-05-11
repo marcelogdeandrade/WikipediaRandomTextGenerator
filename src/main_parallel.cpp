@@ -29,6 +29,7 @@ int main(){
 	mpi::communicator world;
 
 	mpi::timer timer;
+	mpi::timer timer_full;
 
     if (world.rank() != MASTER){
 	    std::string file_name = "files_mini_small/wikipedia-mini-small_" + std::to_string(world.rank()) + ".xml" ;
@@ -68,6 +69,8 @@ int main(){
     	timer.restart();
 
     	std::cout << "\n" << final_text << "\n";
+
+    	std::cout << "TEMPO TOTAL: " << timer_full.elapsed() << "\n";
     }
     
     return 0;
