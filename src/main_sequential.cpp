@@ -62,7 +62,7 @@ int main(){
     std::string final_text = create_random_text(tree, SIZE_TEXT, NGRAM_SIZE);
 
     auto time_generate_text = timer.elapsed();
-    std::cout << "Gerar Texto Final: " << timer_full.elapsed() << "\n";
+    std::cout << "Gerar Texto Final: " << time_generate_text << "\n";
     timer.restart();
 
     std::cout << "\n" << final_text << "\n";
@@ -79,7 +79,7 @@ int main(){
     std::cout << "Mapear ngramas: " << (time_map_ngrams * 100) / total_time << "%\n";
     std::cout << "Criação da árvore: " << (time_create_tree * 100) / total_time << "%\n";
     std::cout << "Gera texto: " << (time_generate_text * 100) / total_time << "%\n";
-    std::cout << "TEMPO TOTAL: " << total_time << "\n";
+    std::cout << "TEMPO TOTAL: " << timer_full.elapsed() << "\n";
     MPI_Finalize();
     return 0;
 }

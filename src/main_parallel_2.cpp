@@ -12,7 +12,7 @@
 namespace mpi = boost::mpi;
 
 
-#define NGRAM_SIZE 3
+#define NGRAM_SIZE 4
 #define SIZE_TEXT 300
 #define TAG 42
 
