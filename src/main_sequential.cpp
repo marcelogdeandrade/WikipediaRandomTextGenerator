@@ -28,7 +28,7 @@ int main(){
 	mpi::timer timer;
 	mpi::timer timer_full;
 
-    std::string file_name = "files_small/wikipedia-small-2.xml";
+    std::string file_name = "files_mini_small/wikipedia-mini-small_full.xml";
     std::vector<std::string> input = read_xml_input(file_name);
 
     auto time_file_read = timer.elapsed();
